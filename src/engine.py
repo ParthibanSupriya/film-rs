@@ -40,8 +40,9 @@ def add_variables(df, REF_VAR):
     return df
 
 
-# recommend the most promising 31 films
+# recommend the most promising N(=31) films
 def recommend(df, id_entry):
+    N = 31
     df_copy = df.copy(deep = True)
     liste_genres = set()
     # Why do we need all the genres instead of the genre of the given id?
@@ -52,7 +53,7 @@ def recommend(df, id_entry):
     df_new = add_variables(df_copy, variables)
 
     X = df_new[variables].values
-    nbrs = NearestNeighbors(n_neighbors=31, algorithm='auto',
+    nbrs = NearestNeighbors(n_neighbors=N, algorithm='auto',
             metric='euclidean').fit(X)
     distances, indices = nbrs.kneighbors(X)
     xtest = df_new.iloc[[id_entry]][variables].values
@@ -61,8 +62,9 @@ def recommend(df, id_entry):
     return indices[0][:]
 
 
+# liste_films: list of id of the selected films.
 def extract_parameters(df, liste_films):
-    parameter_films = ['_' for _ in range(31)]
+    parameter_films = ['_' for _ in range(len(liste_films))]
     i = 0
     max_users = -1
     for index in liste_films:
@@ -104,15 +106,15 @@ def criteria_selection(title_main, max_users,
         note = 0
     else:
         note = imdb_score**2 * facteur_1 * facteur_2
-
     return note
 
 
-# select the top 5 from the 31 films.
+# select the top 5 from the N(=31) films.
 def add_to_selection(film_selection, parameter_films):
+    NUM_TO_RECOMMEND = 8
     film_list = film_selection[:]
     icount = len(film_list)
-    for i in range(31):
+    for i in range(len(parameter_films)):
         already_in_list = False
         for s in film_selection:
             if s[0] == parameter_films[i][0] or\
@@ -120,7 +122,7 @@ def add_to_selection(film_selection, parameter_films):
                 already_in_list = True
         if already_in_list: continue
         icount += 1
-        if icount <= 5:
+        if icount <= NUM_TO_RECOMMEND:
             film_list.append(parameter_films[i])
     return film_list
 
@@ -134,7 +136,8 @@ def remove_sequels(film_selection):
             if sequel(film_1[0], film_2[0]):
                 last_film = film_2[0] if film_1[1] < film_2[1] else film_1[0]
                 removed_from_selection.append(last_film)
-    film_list = [film for film in film_selection if film[0] not in removed_from_selection]
+    film_list = [film for film in film_selection 
+            if film[0] not in removed_from_selection]
     return film_list
 
 
@@ -153,12 +156,4 @@ def find_similarities(df, id_entry, del_sequels = True, verbose = False):
         selection_titres.append([s[0].replace(u'\xa0', u''), s[4]])
         if verbose: print('n{:<2} -> {:<30}'.format(i+1, s[0]))
     return selection_titres
-
-
-
-    
-
-
-
-
 

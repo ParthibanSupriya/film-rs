@@ -6,7 +6,7 @@ import numpy as np
 import sys
 import pandas as pd
 import seaborn as sns
-from exploration import all_keywords, count_word
+from exploration import all_keywords, count_word, missing_values
 
 
 # Actually this function does not change df.
@@ -20,7 +20,8 @@ def deduplicate(df):
     list_var_duplicates = ['movie_title', 'title_year', 'director_name']
     liste_duplicates = df_temp['movie_title']\
             .map(df_temp['movie_title'].value_counts() > 1)
-    print('Num of duplicate entries: {}'.format(
+    print('Num of entries that have the same ' +
+            'movie title as some other entries: {}\nThe details:'.format(
         len(df_temp[liste_duplicates][list_var_duplicates])))
     print(df_temp[liste_duplicates][list_var_duplicates].sort_values('movie_title'))
     df_duplicate_cleaned = df_temp
@@ -29,9 +30,9 @@ def deduplicate(df):
 
 def keywords_inventory(df, column='plot_keywords'):
     PS = nltk.stem.PorterStemmer()
-    keywords_roots = {}
-    keywords_select = {}
-    category_keys = []
+    keywords_roots = {} # root <-> set of words
+    keywords_select = {} # root <-> the shortest word
+    category_keys = [] # set of the shortest word for each root. 
     for s in df[column]:
         if pd.isnull(s): continue
         for t in s.split('|'):
@@ -54,16 +55,18 @@ def keywords_inventory(df, column='plot_keywords'):
         else:
             category_keys.append(list(keywords_roots[s])[0])
             keywords_select[s] = list(keywords_roots[s])[0]
-    print('Num of keywords in variable \'{}\': {}'.format(
+    print('Num of keywords in variable(feature) \'{}\': {}'.format(
         column, len(category_keys)))
-    # get a feel of a sample of keywords that appear in close varieties
     icount = 0
     for s in keywords_roots.keys():
         if len(keywords_roots[s]) > 1:
             icount += 1
+            if icount == 1:
+                print('get a feel of a sample of keywords that appear in close varieties')
             if icount < 15:
                 print(icount, keywords_roots[s], len(keywords_roots[s]))
     return category_keys, keywords_roots, keywords_select
+
 
 # replace keywords with their root-like word.
 def replacement_of_keywords(df, dict_replacement, 
@@ -113,8 +116,11 @@ def clean_keywords_with_low_freq(df):
         return key_count.get(mot, 0) >= threshold
     replacement_mot = {}
     icount = 0
-    # the worst case is that keywords with frequency less than 5
+    # the worst case is that keywords with frequency less than 6
     # are replaced by themselves
+    print('Keywords with frequency lower than 6 are replaced by' +
+            'their synonymes with the most frequency. \n' +
+            'For examples(output is different every time the program runs)...')
     for index, [mot, nb_apparitions] in enumerate(ko):
         # only filter keywords with frequency less than 5
         if nb_apparitions > 5: continue
@@ -151,20 +157,19 @@ def clean_keywords_with_low_freq(df):
             keywords_inventory(df_keywords_synonyms, column='plot_keywords')
     new_keyword_occurences, _4 = count_word(df_keywords_synonyms, 
             'plot_keywords', keywords)
-    #print(len(new_keyword_occurences))
-    #print(new_keyword_occurences[:5])
+    print('The top 5 occurence is as below:')
+    for nko in new_keyword_occurences[:5]: print(nko)
     df_keywords_occurence = \
             replacement_of_low_frequency_keywords(df_keywords_synonyms, 
                     new_keyword_occurences)
-    #keywords_inventory(df_keywords_occurence, column='plot_keywords')
+    keywords_inventory(df_keywords_occurence, column='plot_keywords')
     return df_keywords_occurence
 
 
+# Actually we drop key words that have frequency lower than 4.
 def replacement_of_low_frequency_keywords(df, keyword_occurences):
     df_new = df.copy(deep = True)
-    key_count = {}
-    for s in keyword_occurences:
-        key_count[s[0]] = s[1]
+    key_count = {s[0]: s[1] for s in keyword_occurences}
     for index, row in df_new.iterrows():
         chaine = row['plot_keywords']
         if pd.isnull(chaine): continue
@@ -191,7 +196,7 @@ def visualize_word_freq_diff(df_before, df_after, column='plot_keywords'):
     x_axis_before = [k for k in range(len(ko_before))]
     y_axis_after = [i[1] for i in ko_after]
     x_axis_after = [k for k in range(len(ko_after))]
-    f, ax = plt.subplots(figsize = (9, 5))
+    f, ax = plt.subplots(figsize = (12, 7))
     ax.plot(x_axis_before, y_axis_before, 'r-', label='before cleaning')
     ax.plot(x_axis_after, y_axis_after, 'b-', label='after cleaning')
     legend = ax.legend(loc='upper right', shadow=True)
@@ -204,6 +209,7 @@ def visualize_word_freq_diff(df_before, df_after, column='plot_keywords'):
     plt.xlabel('keywords index', family = 'fantasy', fontsize = 15)
     plt.ylabel('Num of occurences', family = 'fantasy', fontsize = 15)
     plt.text(3500, 4.5, 'threshold for keyword delation', fontsize = 13)
+    plt.show()
 
 
 def correlation(df):
@@ -214,11 +220,12 @@ def correlation(df):
     cm = np.corrcoef(df[cols].dropna(how='any').values.T)
     sns.set(font_scale = 1.25)
     hm = sns.heatmap(cm, cbar=True, annot=True, square=True,
-            fmt='.2f', annot_kws={'size': 10}, linewidth=0.1,
+            fmt='.2f', annot_kws={'size': 8}, linewidth=0.1,
             cmap='coolwarm', yticklabels=cols.values,
             xticklabels=cols.values)
     f.text(0.5, 0.93, 'Correlation coefficients', ha='center',
             fontsize=18, family='fantasy')
+    plt.show()
 
 
 def visualize_filling_factor(df):
@@ -244,6 +251,8 @@ def visualize_filling_factor(df):
     plt.xticks(x_axis, x_label, family='fantasy', fontsize=14)
     plt.ylabel('Filling factor (%)', family='fantasy', fontsize=16)
     plt.bar(x_axis, y_axis)
+    plt.show()
+
 
 # It seems this function could not work as expected.
 # Because the row with title_year as null has all attributes as null.
@@ -257,8 +266,10 @@ def fill_year(df):
     for i in range(4):
         for s in usual_year[i].index:
             if s in actor_year.keys():
+                # I think this formula is not correct.
                 if pd.notnull(usual_year[i][s]) and pd.notnull(actor_year[s]):
                     actor_year[s] = (actor_year[s] + usual_year[i][s]) / 2
+                # Why for this check?
                 elif pd.isnull(actor_year[s]):
                     actor_year[s] = usual_year[i][s]
             else:
@@ -304,11 +315,14 @@ def extract_keywords_from_title(df):
             print('{:<50} -> {:<30}'.format(row['movie_title'], str(new_keywords)))
         if new_keywords:
             df.at[index, 'plot_keywords'] = '|'.join(new_keywords)
+    return df
 
 
 def pairplot(df, col1, col2):
     sns.set(font_scale=1.25)
-    sns.pairplot(df.dropna(how='any')[[col1, col2]], diag_kind='kde', height=2.5)
+    sns.pairplot(df.dropna(how='any')[[col1, col2]], 
+            diag_kind='kde', height=2.5)
+    plt.show()
 
 
 def variable_linreg_imputation(df, col_to_predict, ref_col):

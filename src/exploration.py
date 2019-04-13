@@ -3,11 +3,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
+import seaborn as sns
 
 
 def load_tmdb_movies(path):
     df = pd.read_csv(path)
-    df['release_date'] = pd.to_datetime(df['release_date']).apply(lambda x: x.date())
+    df['release_date'] = pd.to_datetime(df['release_date']).apply(
+            lambda x: x.date())
     json_columns = ['genres', 'keywords', 'production_countries',
             'production_companies', 'spoken_languages']
     for column in json_columns:
@@ -52,10 +54,8 @@ TMDB_TO_IMDB_SIMPLE_EQUIVALENCIES = {
 IMDB_COLUMNS_TO_REMAP = {'imdb_score': 'vote_average'}
 
 
-
-
+# return missing value rather than an error upon indexing/key failure
 def safe_access(container, index_values):
-    # return missing value rather than an error upon indexing/key failure
     result = container
     try:
         for idx in index_values:
@@ -85,17 +85,16 @@ def convert_to_original_format(movies, credits):
             lambda x: safe_access(x, [0, 'name']))
     tmdb_movies['director_name'] = credits['crew'].apply(get_director)
     tmdb_movies['actor_1_name'] = credits['cast'].apply(
-            lambda x: safe_access(x, [0, 'name']))
-    tmdb_movies['actor_2_name'] = credits['cast'].apply(
             lambda x: safe_access(x, [1, 'name']))
-    tmdb_movies['actor_3_name'] = credits['cast'].apply(
+    tmdb_movies['actor_2_name'] = credits['cast'].apply(
             lambda x: safe_access(x, [2, 'name']))
+    tmdb_movies['actor_3_name'] = credits['cast'].apply(
+            lambda x: safe_access(x, [3, 'name']))
     tmdb_movies['genres'] = tmdb_movies['genres'].apply(
             pipe_flattern_names)
     tmdb_movies['plot_keywords'] = tmdb_movies['plot_keywords'].apply(
             pipe_flattern_names)
     return tmdb_movies
-
 
 
 # get all the unique key words in a given feature.
@@ -106,6 +105,7 @@ def all_keywords(df, col_name):
         if isinstance(liste_keywords, float): continue
         unique_words = unique_words.union(liste_keywords)
     return unique_words
+
 
 # get the frequency of all the unique key words.
 def count_word(df, ref_col, liste):
@@ -135,13 +135,13 @@ def random_color_func(word=None, font_size=None, position=None,
     return 'hsl({}, {}%, {}%)'.format(h, s, l)
 
 
-def wordcloud_and_histogram(keyword_occurences, show_histogram=False):
-    fig = plt.figure(1, figsize=(18, 13))
+def wordcloud_and_histogram(keyword_occurences, 
+        show_histogram=False, col_name='PlotKeyword'):
+    fig = plt.figure(1, figsize=(9, 7))
     ax1 = fig.add_subplot(2, 1, 1)
-    words = {}
+    # no too many keywords to show
     trunc_occurences = keyword_occurences[0:50]
-    for s in trunc_occurences:
-        words[s[0]] = s[1]
+    words = {s[0]: s[1] for s in trunc_occurences}
     wordcloud = WordCloud(width=1000, height=300, background_color='black',
             max_words=1628, relative_scaling=1,
             color_func=random_color_func,
@@ -155,15 +155,15 @@ def wordcloud_and_histogram(keyword_occurences, show_histogram=False):
         y_axis = [i[1] for i in trunc_occurences]
         x_axis = [k for k, i in enumerate(trunc_occurences)]
         x_label = [i[0] for i in trunc_occurences]
-        plt.xticks(rotation=85, fontsize=15)
+        plt.xticks(rotation=85, fontsize=13)
         plt.yticks(fontsize=15)
         plt.xticks(x_axis, x_label)
         plt.ylabel('No. of occurences', fontsize=18, labelpad=10)
         ax2.bar(x_axis, y_axis, align='center', color='g')
-        plt.title('Keywords popularity', 
-                bbox={'facecolor': 'k', 'pad': 5}, color='w',
-                fontsize=25)
-
+    plt.title('{} popularity'.format(col_name), 
+            bbox={'facecolor': 'k', 'pad': 5}, color='w',
+            fontsize=25)
+    plt.show()
 
 
 # count of missing values of each feature.
@@ -185,11 +185,11 @@ def group_by_decade_and_show(df):
                 'count': gr.count(),
                 'mean': gr.mean()}
     test = df['title_year'].groupby(df['decade']).apply(get_stats).unstack()
-    
     def label(s):
         val = (1900 + s, s)[s < 100]
         chaine = '' if s < 50 else "{}'s".format(int(val))
         return chaine
+    sns.set_context('poster', font_scale=0.85)
     plt.rc('font', weight='bold')
     f, ax = plt.subplots(figsize=(11, 6))
     labels = [label(s) for s in test.index]
@@ -202,9 +202,11 @@ def group_by_decade_and_show(df):
     ax.set_title('% of films per decade', bbox={'facecolor': 'k', 'pad': 5},
             color='w', fontsize=16)
     df.drop('decade', axis=1, inplace=True)
+    plt.show()
     return test
 
 
+# The transformation from the old dataset to the new one.
 def drop_old_columns(df):
     new_col_order = ['movie_title', 'title_year', 'genres', 'plot_keywords',
             'director_name', 'actor_1_name', 'actor_2_name', 'actor_3_name',
@@ -224,18 +226,3 @@ def drop_old_columns(df):
     df_var_cleaned = df[new_col_order]
     return df_var_cleaned
 
-
-#liste = all_keywords(init_tmdb_movies, 'plot_keywords')
-#ko, kc = count_word(init_tmdb_movies, 'plot_keywords', liste)
-#wordcloud_and_histogram(ko, True)
-#missing_values(init_tmdb_movies)
-#group_by_decade_and_show(init_tmdb_movies)
-#liste = all_keywords(init_tmdb_movies, 'genres')
-#ko, kc = count_word(init_tmdb_movies, 'genres', liste)
-#wordcloud_and_histogram(ko)
-
-
-
-
-
-#plt.show()
