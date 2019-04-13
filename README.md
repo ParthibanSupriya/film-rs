@@ -32,6 +32,7 @@ by the author. We can think about it later.
 incompatibility. Expected 96, got 80"
 
 **Just reinstall numpy(1.15.1 or above) as below**
+<br/><br/>
 pip uninstall numpy
 pip install numpy=1.15.1
 
