@@ -1,7 +1,7 @@
 # Film Recommendation System
 
 ### This is our group project of the course "Introduction to Big Data".
-Our reference: <a href="ref: https://www.kaggle.com/sohier/film-recommendation-engine-converted-to-use-tmdb/data">Tutorial</a>
+Our reference: <a href="https://www.kaggle.com/sohier/film-recommendation-engine-converted-to-use-tmdb/data">Tutorial</a>
 
 <br /><br />
 ## change-log
@@ -32,7 +32,9 @@ by the author. We can think about it later.
 incompatibility. Expected 96, got 80"
 
 **Just reinstall numpy(1.15.1 or above) as below**
+<br/><br/>
 pip uninstall numpy
+<br/>
 pip install numpy=1.15.1
 
 
