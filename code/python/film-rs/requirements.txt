@@ -1,9 +1,0 @@
-pandas
-numpy
-matplotlib
-wordcloud
-nltk
-sklearn
-seaborn
-fuzzywuzzy
-
