@@ -7,6 +7,7 @@ from wordcloud import WordCloud
 import seaborn as sns
 
 
+# a function to save the plt figures.
 def my_pltsavefig(fig_title, mydir='../figure/', fig_extension='.png'):
     filename = mydir + fig_title.replace(' ', '-') + fig_extension
     if not os.path.exists(filename):
