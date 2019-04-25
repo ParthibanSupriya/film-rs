@@ -25,6 +25,8 @@ one with size only **5k**, in order to meet the requirement of "big data".
 by the author. We can think about it later.
 
 
+### 2019.04.25
+1. I have upated the code in order to save the figures for the convenience of visualization;
 
 ### Note:
 1. If you run the program and get some warnings at the beginning saying
