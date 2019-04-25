@@ -1,9 +1,19 @@
+import os
 import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 import seaborn as sns
+
+
+def my_pltsavefig(fig_title, mydir='../figure/', fig_extension='.png'):
+    filename = mydir + fig_title.replace(' ', '-') + fig_extension
+    if not os.path.exists(filename):
+        plt.savefig(filename)
+        return True
+    else:
+        return False
 
 
 def load_tmdb_movies(path):
@@ -160,9 +170,10 @@ def wordcloud_and_histogram(keyword_occurences,
         plt.xticks(x_axis, x_label)
         plt.ylabel('No. of occurences', fontsize=18, labelpad=10)
         ax2.bar(x_axis, y_axis, align='center', color='g')
-    plt.title('{} popularity'.format(col_name), 
-            bbox={'facecolor': 'k', 'pad': 5}, color='w',
+    t = '{} popularity'.format(col_name)
+    plt.title(t, bbox={'facecolor': 'k', 'pad': 5}, color='w',
             fontsize=25)
+    my_pltsavefig(t)
     plt.show()
 
 
@@ -199,9 +210,11 @@ def group_by_decade_and_show(df):
             autopct=lambda x: '{:1.0f}%'.format(x) if x > 1 else '',
             shadow=False, startangle=0)
     ax.axis('equal')
-    ax.set_title('% of films per decade', bbox={'facecolor': 'k', 'pad': 5},
+    t = '% of films per decade'
+    ax.set_title(t, bbox={'facecolor': 'k', 'pad': 5},
             color='w', fontsize=16)
     df.drop('decade', axis=1, inplace=True)
+    my_pltsavefig(t)
     plt.show()
     return test
 

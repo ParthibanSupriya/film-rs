@@ -6,7 +6,8 @@ import numpy as np
 import sys
 import pandas as pd
 import seaborn as sns
-from exploration import all_keywords, count_word, missing_values
+from exploration import all_keywords, count_word, \
+        missing_values, my_pltsavefig
 
 
 # Actually this function does not change df.
@@ -209,6 +210,7 @@ def visualize_word_freq_diff(df_before, df_after, column='plot_keywords'):
     plt.xlabel('keywords index', family = 'fantasy', fontsize = 15)
     plt.ylabel('Num of occurences', family = 'fantasy', fontsize = 15)
     plt.text(3500, 4.5, 'threshold for keyword delation', fontsize = 13)
+    my_pltsavefig('word freq diff')
     plt.show()
 
 
@@ -225,6 +227,7 @@ def correlation(df):
             xticklabels=cols.values)
     f.text(0.5, 0.93, 'Correlation coefficients', ha='center',
             fontsize=18, family='fantasy')
+    my_pltsavefig('correlation')
     plt.show()
 
 
@@ -251,6 +254,7 @@ def visualize_filling_factor(df):
     plt.xticks(x_axis, x_label, family='fantasy', fontsize=14)
     plt.ylabel('Filling factor (%)', family='fantasy', fontsize=16)
     plt.bar(x_axis, y_axis)
+    my_pltsavefig('filling factor')
     plt.show()
 
 
@@ -322,6 +326,7 @@ def pairplot(df, col1, col2):
     sns.set(font_scale=1.25)
     sns.pairplot(df.dropna(how='any')[[col1, col2]], 
             diag_kind='kde', height=2.5)
+    my_pltsavefig('pairplot')
     plt.show()
 
 
