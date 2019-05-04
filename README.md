@@ -1,8 +1,9 @@
 # Film Recommendation System
 
 ### This is our group project of the course "Introduction to Big Data".
-Our reference: <a href="https://www.kaggle.com/sohier/film-recommendation-engine-converted-to-use-tmdb/data">Tutorial</a>
-
+Our reference: <br />
+1. <a href="https://www.kaggle.com/sohier/film-recommendation-engine-converted-to-use-tmdb/data">Tutorial 1(the updated article with a small dataset)</a>
+2. <a href="https://www.kaggle.com/fabiendaniel/film-recommendation-engine?scriptVersionId=1815993">Tutorial 2(the original article with a large dataset)</a>
 <br /><br />
 ## change-log
 
