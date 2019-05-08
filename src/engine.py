@@ -2,7 +2,7 @@ import math
 from sklearn.neighbors import NearestNeighbors
 from fuzzywuzzy import fuzz
 import pandas as pd
-
+import numpy as np
 
 gaussian_filter = lambda x, y, sigma: math.exp(-(x - y)**2 / (2*sigma**2))
 
@@ -36,7 +36,8 @@ def add_variables(df, REF_VAR):
         for index, row in df.iterrows():
             if pd.isnull(row[category]): continue
             for s in row[category].split('|'):
-                if s in REF_VAR: df.at[index, s] = 1
+                if s in REF_VAR:
+                    df.at[index, s] = 1
     return df
 
 
@@ -51,7 +52,7 @@ def recommend(df, id_entry):
     variables = entry_variables(df_copy, id_entry)
     variables += list(liste_genres)
     df_new = add_variables(df_copy, variables)
-
+    df_new = df_new.replace([np.nan, np.inf, -np.inf], 0)
     X = df_new[variables].values
     nbrs = NearestNeighbors(n_neighbors=N, algorithm='auto',
             metric='euclidean').fit(X)
@@ -144,7 +145,7 @@ def remove_sequels(film_selection):
 def find_similarities(df, id_entry, del_sequels = True, verbose = False):
     if verbose:
         print(90*'_' + '\nQUERY: films similar to id={} -> \'{}\''.format(
-            id_entry, str(df.iloc[[id_entry]]['movie_title'])))
+            id_entry, str(df.iloc[[id_entry]]['movie_title'].values)))
     liste_films = recommend(df, id_entry)
     parameter_films = extract_parameters(df, liste_films)
     film_selection = []

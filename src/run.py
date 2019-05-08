@@ -3,8 +3,7 @@ ref: https://www.kaggle.com/sohier/film-recommendation-engine-converted-to-use-t
 '''
 import os
 import nltk
-from exploration import load_tmdb_movies, \
-        load_tmdb_credits, convert_to_original_format, \
+from exploration import load_tmdb_dataset, convert_to_original_format, \
         all_keywords, count_word, drop_old_columns, \
         missing_values, wordcloud_and_histogram, \
         group_by_decade_and_show
@@ -15,14 +14,17 @@ from cleaning import deduplicate, keywords_inventory, \
         visualize_filling_factor, pairplot
 from engine import find_similarities
 import matplotlib.pyplot as plt
-
+import numpy as np
+import pandas as pd
 
 nltk.download('wordnet')
+pd.set_option('display.max_colwidth', -1)
 
 
 def main():
-    movies = load_tmdb_movies('../data/tmdb_5000_movies.csv')
-    credits = load_tmdb_credits('../data/tmdb_5000_credits.csv')
+    #movies = load_tmdb_movies('../data/tmdb_5000_movies.csv')
+    #credits = load_tmdb_credits('../data/tmdb_5000_credits.csv')
+    movies, credits = load_tmdb_dataset()
     init_tmdb_movies = convert_to_original_format(movies, credits)
 
     liste = all_keywords(init_tmdb_movies, 'plot_keywords')
@@ -62,7 +64,8 @@ def main():
     print('Find out records that miss title year.')
     df_filling = df_var_cleaned.copy(deep=True)
     missing_year_info = df_filling[df_filling['title_year'].isnull()][
-            ['director_name', 'actor_1_name', 'actor_2_name', 'actor_3_name']]
+            ['movie_title', 'director_name', \
+                    'actor_1_name', 'actor_2_name', 'actor_3_name']]
     print(missing_year_info[:10])
     fill_year(df_filling)
     extract_keywords_from_title(df_filling)
@@ -72,7 +75,10 @@ def main():
     missing_df = missing_values(df_filling)
     print('\n\n\nFinally, filling factor of each feature(column):')
     print(missing_df)
-    
+    print('dataset size before dropping: ', df_filling.shape[0])
+    df_filling = df_filling.replace([np.inf, -np.inf], np.nan)\
+            .dropna(subset=df_filling.columns.values.tolist())
+    print('dataset size after dropping: ', df_filling.shape[0])
     print('\n\n\n' + '='*40)
     print('Below is the test cases:')
     for i in range(0, 20, 3):

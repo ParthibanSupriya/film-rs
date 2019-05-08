@@ -10,22 +10,19 @@ from exploration import all_keywords, count_word, \
         missing_values, my_pltsavefig
 
 
-# Actually this function does not change df.
 def deduplicate(df):
-    # actually no duplicate
-    doubled_entries = df[df.id.duplicated()]
-    #print(doubled_entries.shape)
-
     # check whether there is duplicate of movie title.
     df_temp = df
     list_var_duplicates = ['movie_title', 'title_year', 'director_name']
     liste_duplicates = df_temp['movie_title']\
             .map(df_temp['movie_title'].value_counts() > 1)
+    duplicate_index = [i for i, ele in enumerate(liste_duplicates) if type(ele) != bool]
+    liste_duplicates.loc[duplicate_index] = [False] * len(duplicate_index)
     print('Num of entries that have the same ' +
             'movie title as some other entries: {}\nThe details:'.format(
         len(df_temp[liste_duplicates][list_var_duplicates])))
     print(df_temp[liste_duplicates][list_var_duplicates].sort_values('movie_title'))
-    df_duplicate_cleaned = df_temp
+    df_duplicate_cleaned = df_temp.drop_duplicates(subset=['movie_title'])
     return df_duplicate_cleaned
 
 

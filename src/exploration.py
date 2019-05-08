@@ -1,11 +1,26 @@
 import os
 import json
+import ast
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 import seaborn as sns
 
+
+'''
+movie metadata:
+adult,belongs_to_collection,budget,genres,homepage,id,imdb_id,
+original_language,original_title,overview,popularity,poster_path,
+production_companies,production_countries,release_date,revenue,
+runtime,spoken_languages,status,tagline,title,video,vote_average,vote_count
+
+keywords:
+id,keywords
+
+credits:
+cast,crew,id
+'''
 
 # a function to save the plt figures.
 def my_pltsavefig(fig_title, mydir='../figure/', fig_extension='.png'):
@@ -17,23 +32,42 @@ def my_pltsavefig(fig_title, mydir='../figure/', fig_extension='.png'):
         return False
 
 
-def load_tmdb_movies(path):
-    df = pd.read_csv(path)
-    df['release_date'] = pd.to_datetime(df['release_date']).apply(
-            lambda x: x.date())
-    json_columns = ['genres', 'keywords', 'production_countries',
+def load_tmdb_dataset(dirname='../the-movies-dataset'):
+    df_meta = pd.read_csv(dirname+'/movies_metadata.csv', dtype={'popularity': object})
+    df_keywords = pd.read_csv(dirname+'/keywords.csv')
+    df_credits = pd.read_csv(dirname+'/credits.csv')
+ 
+    # There are 3 rows here that with id as date like '1970-08-20', so I filtered them out.
+    weird_id_indexs = [index for index, row in df_meta.iterrows() if len(row.id) >= 9]
+    print('record with id in date format:')
+    print(df_meta.loc[weird_id_indexs].id)
+    df_meta = df_meta.drop(weird_id_indexs)
+    df_meta = df_meta.astype({'popularity': float})
+    df_meta['id'] = df_meta['id'].astype(int)
+    df_keywords['id'] = df_keywords['id'].astype(int)
+    df_credits['id'] = df_credits['id'].astype(int)
+
+    def eval_json(node_value):
+        if pd.isnull(node_value): return np.nan
+        else: return ast.literal_eval(node_value)
+
+    json_columns = ['genres', 'production_countries',
             'production_companies', 'spoken_languages']
     for column in json_columns:
-        df[column] = df[column].apply(json.loads)
-    return df
-
-
-def load_tmdb_credits(path):
-    df = pd.read_csv(path)
+        df_meta[column] = df_meta[column].apply(eval_json)
+    df_keywords['keywords'] = df_keywords['keywords'].apply(eval_json)
     json_columns = ['cast', 'crew']
     for column in json_columns:
-        df[column] = df[column].apply(json.loads)
-    return df
+        df_credits[column] = df_credits[column].apply(eval_json)
+    
+    df_meta = df_meta.set_index('id')
+    df_meta = df_meta[~df_meta.index.duplicated()]
+    df_keywords = df_keywords.set_index('id')
+    df_keywords = df_keywords[~df_keywords.index.duplicated()]
+    df_meta['keywords'] = df_keywords['keywords'].copy(deep=True)
+    df_meta = df_meta.reset_index().rename(columns={'index': 'id'})
+    df_credits = df_credits.rename(columns={'id': 'movie_id'})
+    return df_meta, df_credits
 
 
 LOST_COLUMNS = [
@@ -72,7 +106,7 @@ def safe_access(container, index_values):
         for idx in index_values:
             result = result[idx]
         return result
-    except IndexError or KeyError:
+    except (IndexError, KeyError, TypeError) as e:
         return pd.np.nan
 
 
@@ -82,14 +116,23 @@ def get_director(crew_data):
 
 
 def pipe_flattern_names(keywords):
-    return '|'.join([x['name'] for x in keywords])
+    try:
+        return '|'.join([x['name'] for x in keywords])
+    except TypeError:
+        return np.nan
 
 
 def convert_to_original_format(movies, credits):
     tmdb_movies = movies.copy()
+
+    def _get_year(nodevalue):
+        try:
+            return pd.to_datetime(nodevalue).year
+        except ValueError as e:
+            return np.nan
+
     tmdb_movies.rename(columns=TMDB_TO_IMDB_SIMPLE_EQUIVALENCIES, inplace=True)
-    tmdb_movies['title_year'] = pd.to_datetime(tmdb_movies['release_date']).apply(
-            lambda x: x.year)
+    tmdb_movies['title_year'] = tmdb_movies['release_date'].map(_get_year)
     tmdb_movies['country'] = tmdb_movies['production_countries'].apply(
             lambda x: safe_access(x, [0, 'name']))
     tmdb_movies['language'] = tmdb_movies['spoken_languages'].apply(
@@ -111,11 +154,15 @@ def convert_to_original_format(movies, credits):
 # get all the unique key words in a given feature.
 def all_keywords(df, col_name):
     unique_words = set()
-    for liste_keywords in df[col_name].str.split('|').values:
-        # iff NaN
-        if isinstance(liste_keywords, float): continue
-        unique_words = unique_words.union(liste_keywords)
-    return unique_words
+    try:
+        for liste_keywords in df[col_name].str.split('|').values:
+            # iff NaN
+            if isinstance(liste_keywords, float): continue
+            unique_words = unique_words.union(liste_keywords)
+        return unique_words
+    except AttributeError:
+        print('In all_keywords(), catch AttributeError: col_name:', col_name)
+        return unique_words
 
 
 # get the frequency of all the unique key words.
@@ -206,7 +253,7 @@ def group_by_decade_and_show(df):
     f, ax = plt.subplots(figsize=(11, 6))
     labels = [label(s) for s in test.index]
     sizes = test['count'].values
-    explode = [0.2 if sizes[i] < 100 else 0.01 for i in range(11)]
+    explode = [0.2 if sizes[i] < 100 else 0.01 for i in range(len(sizes))]
     ax.pie(sizes, explode=explode, labels=labels,
             autopct=lambda x: '{:1.0f}%'.format(x) if x > 1 else '',
             shadow=False, startangle=0)
